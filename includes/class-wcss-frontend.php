@@ -11,6 +11,37 @@ class WCSS_Frontend {
         add_filter( 'query_vars', [ $this, 'add_my_subscriptions_query_var' ] );
         add_filter( 'woocommerce_account_menu_items', [ $this, 'add_my_subscriptions_menu_item' ] );
         add_action( 'woocommerce_account_wcss-subscriptions_endpoint', [ $this, 'output_my_subscriptions_endpoint' ] );
+
+        // Enqueue frontend CSS only on single product pages
+        add_action( 'wp_enqueue_scripts', [ $this, 'enqueue_frontend_assets' ] );
+    }
+
+    /**
+     * Enqueue frontend styles (only on single product pages)
+     */
+    public function enqueue_frontend_assets() {
+        if ( function_exists( 'is_product' ) && is_product() ) {
+            wp_enqueue_style(
+                'wcss-frontend',
+                WCSS_PLUGIN_URL . 'assets/frontend-subscriptions.css',
+                [],
+                defined( 'WCSS_VERSION' ) ? WCSS_VERSION : false
+            );
+        }
+
+        // Optionally enqueue styles on My Account subscriptions endpoint
+        if ( function_exists( 'is_account_page' ) && is_account_page() ) {
+            // check query var to limit to subscriptions endpoint if needed
+            global $wp;
+            if ( isset( $wp->query_vars['wcss-subscriptions'] ) ) {
+                wp_enqueue_style(
+                    'wcss-frontend',
+                    WCSS_PLUGIN_URL . 'assets/frontend-subscriptions.css',
+                    [],
+                    defined( 'WCSS_VERSION' ) ? WCSS_VERSION : false
+                );
+            }
+        }
     }
 
     public function add_my_subscriptions_endpoint() {
