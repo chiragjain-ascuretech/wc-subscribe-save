@@ -1,0 +1,75 @@
+/* Styles for S&S Subscriptions admin page */
+.wcss-subscriptions-wrap h1{
+  margin-bottom:12px;
+}
+.wcss-subscriptions-search{
+  margin-bottom:16px;
+  display:flex;
+  gap:8px;
+  align-items:center;
+}
+.wcss-subscriptions-search input[type="text"]{
+  min-width:320px;
+  padding:6px 8px;
+  border:1px solid #ccd0d4;
+  border-radius:4px;
+}
+.wcss-subscriptions-table{
+  border-radius:6px;
+  overflow:hidden;
+  box-shadow:0 2px 8px rgba(0,0,0,0.04);
+  border:1px solid #e5e7eb;
+}
+.wcss-subscriptions-table thead{
+  background:#fafafa;
+  color:#333;
+  font-weight:600;
+}
+.wcss-subscriptions-table th, .wcss-subscriptions-table td{
+  padding:10px 12px;
+  vertical-align:middle;
+}
+.wcss-subscriptions-table tbody tr:nth-child(odd){
+  background:#fff;
+}
+.wcss-subscriptions-table tbody tr:nth-child(even){
+  background:#fbfbfb;
+}
+.wcss-subscriptions-table td a{
+  color:#0073aa;
+  text-decoration:none;
+}
+.wcss-subscriptions-table .wcss-plan-price{
+  color:#555;
+  font-size:13px;
+  margin-left:6px;
+}
+.wcss-cancel-btn{
+  background:#e74c3c;
+  color:#fff;
+  border:none;
+  padding:6px 10px;
+  border-radius:4px;
+  display:inline-block;
+}
+.wcss-cancel-btn:hover{opacity:0.95}
+.wcss-pagination{
+  margin-top:18px;
+  text-align:right;
+}
+.wcss-pagination .page-link{
+  margin-left:6px;
+  border-radius:3px;
+  min-width:32px;
+  display:inline-block;
+  padding:6px 8px;
+  text-align:center;
+  color:#0073aa;
+  background:#f7f7f7;
+  text-decoration:none;
+}
+.wcss-pagination .page-link.active{
+  background:#0073aa;
+  color:#fff;
+}
+.wcss-no-results{color:#888;text-align:center;padding:12px}

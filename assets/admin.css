@@ -1,0 +1,7 @@
+.wcss-plans-wrapper .wcss-plans-table th,
+.wcss-plans-wrapper .wcss-plans-table td { padding: 6px; }
+.wcss-plans-wrapper .wcss-plans-table input[type="number"] { width: 90px; }
+.wcss-plans-wrapper .wcss-plans-table input[type="text"] { width: 220px; }
+.wcss-plans-wrapper .wcss-plans-table select { min-width: 120px; }
+
+
