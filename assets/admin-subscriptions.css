@@ -35,8 +35,8 @@
 .wcss-subscriptions-table tbody tr:nth-child(even){
   background:#fbfbfb;
 }
-.wcss-subscriptions-table td a{
-  color:#0073aa;
+.wcss-subscriptions-table td a.sub-order-link{
+  color:#0082d1;
   text-decoration:none;
 }
 .wcss-subscriptions-table .wcss-plan-price{
@@ -45,7 +45,7 @@
   margin-left:6px;
 }
 .wcss-cancel-btn{
-  background:#e74c3c;
+  background:#0073aa;
   color:#fff;
   border:none;
   padding:6px 10px;

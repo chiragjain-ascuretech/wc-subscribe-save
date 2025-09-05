@@ -78,7 +78,7 @@ class WCSS_Admin_Subscriptions {
                 $next_renewal_str = $next_renewal ? date_i18n( 'Y-m-d', $next_renewal ) : '';
                 $customer = $customer_id ? get_userdata( $customer_id ) : false;
                 $customer_name = $customer ? $customer->user_login : '';
-                $order_link = $last_order ? '<a href="' . esc_url( admin_url( 'post.php?post=' . $last_order . '&action=edit' ) ) . '" target="_blank">' . esc_html( $last_order ) . '</a>' : '';
+                $order_link = $last_order ? '<a href="' . esc_url( admin_url( 'post.php?post=' . $last_order . '&action=edit' ) ) . '" target="_blank" class="sub-order-link">' . esc_html( $last_order ) . '</a>' : '';
                 echo '<tr style="vertical-align:middle;">';
                 echo '<td>' . esc_html( $sub_id ) . '</td>';
                 echo '<td>' . $order_link . '</td>';
