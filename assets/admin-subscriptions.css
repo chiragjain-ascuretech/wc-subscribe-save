@@ -52,7 +52,11 @@
   border-radius:4px;
   display:inline-block;
 }
-.wcss-cancel-btn:hover{opacity:0.95}
+.wcss-cancel-btn:hover{
+  opacity:0.95;
+  color: #ffffff;
+  background: #000000;
+}
 .wcss-pagination{
   margin-top:18px;
   text-align:right;

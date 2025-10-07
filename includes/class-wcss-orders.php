@@ -1,6 +1,11 @@
 <?php
 if ( ! defined( 'ABSPATH' ) ) { exit; }
 
+// Load gateway interface + manager from the gateways directory (these files must exist)
+// These files MUST declare gateway classes — do NOT redeclare them here.
+require_once WCSS_PLUGIN_DIR . 'includes/gateways/class-wcss-gateway-interface.php';
+require_once WCSS_PLUGIN_DIR . 'includes/gateways/class-wcss-gateway-manager.php';
+
 class WCSS_Orders {
     public function init() {
         add_action( 'woocommerce_thankyou', [ $this, 'create_subscription_record' ], 20 );
@@ -18,7 +23,7 @@ class WCSS_Orders {
             if ( empty( $plan ) ) { continue; }
 
             $product_id = $item->get_product_id();
-            $customer_id = $order->get_user_id();
+            $customer_id = $order->get_user_id() ?: 0;
             $next = $this->calculate_next_renewal_timestamp( time(), $plan );
 
             $sub_id = wp_insert_post( [
@@ -78,10 +83,14 @@ class WCSS_Orders {
         }
     }
 
+    /**
+     * Create renewal order, attempt charge via gateway adapter if token present.
+     * If charge succeeds -> payment_complete(), else leave pending/failed.
+     */
     private function create_renewal_order_for_subscription( $sub_id ) {
         $customer_id = (int) get_post_meta( $sub_id, '_wcss_customer_id', true );
-        $product_id = (int) get_post_meta( $sub_id, '_wcss_product_id', true );
-        $plan = get_post_meta( $sub_id, '_wcss_plan', true );
+        $product_id  = (int) get_post_meta( $sub_id, '_wcss_product_id', true );
+        $plan        = get_post_meta( $sub_id, '_wcss_plan', true );
         if ( empty( $product_id ) || empty( $plan ) ) { return; }
 
         $product = wc_get_product( $product_id );
@@ -90,20 +99,82 @@ class WCSS_Orders {
         $base_price = (float) $product->get_price( 'edit' );
         $price = WCSS_Utils::apply_discount_to_amount_static( $base_price, $plan );
 
+        // Create order
         $order = wc_create_order( [ 'customer_id' => $customer_id ] );
         $order->add_product( $product, 1, [
             'totals' => [ 'subtotal' => $price, 'total' => $price ],
-            'name' => $product->get_name(),
+            'name'   => $product->get_name(),
         ] );
+
+        // Copy billing/shipping from last order if available
+        $last_order_id = (int) get_post_meta( $sub_id, '_wcss_last_order_id', true );
+        if ( $last_order_id ) {
+            $last = wc_get_order( $last_order_id );
+            if ( $last ) {
+                $billing_fields = [ 'first_name','last_name','company','address_1','address_2','city','state','postcode','country','email','phone' ];
+                foreach ( $billing_fields as $f ) {
+                    $getter = 'get_billing_' . $f;
+                    $setter = 'set_billing_' . $f;
+                    if ( method_exists( $last, $getter ) && method_exists( $order, $setter ) ) {
+                        $order->{$setter}( $last->{$getter}() );
+                    }
+                }
+                $shipping_fields = [ 'first_name','last_name','company','address_1','address_2','city','state','postcode','country' ];
+                foreach ( $shipping_fields as $f ) {
+                    $getter = 'get_shipping_' . $f;
+                    $setter = 'set_shipping_' . $f;
+                    if ( method_exists( $last, $getter ) && method_exists( $order, $setter ) ) {
+                        $order->{$setter}( $last->{$getter}() );
+                    }
+                }
+
+                // Copy payment method title/id if present (won't charge by itself)
+                $payment_method = $last->get_payment_method();
+                $payment_method_title = $last->get_payment_method_title();
+                if ( $payment_method ) {
+                    $order->set_payment_method( $payment_method );
+                    $order->set_payment_method_title( $payment_method_title );
+                }
+            }
+        }
 
         foreach ( $order->get_items() as $item ) {
             $item->add_meta_data( '_wcss_is_subscription', 'yes', true );
             $item->add_meta_data( '_wcss_plan', wp_json_encode( $plan ), true );
         }
-        $order->calculate_totals();
-        $order->set_status( 'pending' );
-        $order->save();
 
+        $order->calculate_totals();
+
+        // Attempt to find a saved payment token and charge via adapter
+        $charged = false;
+        if ( $customer_id ) {
+            if ( class_exists( 'WC_Payment_Tokens' ) ) {
+                $tokens = WC_Payment_Tokens::get_tokens( [ 'user_id' => $customer_id ] );
+                foreach ( $tokens as $token ) {
+                    $adapter = WCSS_Gateway_Manager::get_adapter_for_token( $token );
+                    if ( $adapter && method_exists( $adapter, 'charge_token' ) ) {
+                        $result = $adapter->charge_token( $token, $price, $order );
+                        if ( ! empty( $result['success'] ) ) {
+                            $txid = $result['transaction_id'] ?? '';
+                            $order->payment_complete( $txid );
+                            $charged = true;
+                            break;
+                        }
+                        // If adapter attempted but failed, stop iterating tokens for now
+                        break;
+                    }
+                }
+            }
+        }
+
+        if ( ! $charged ) {
+            // By default leave as pending so admin/customer can complete payment.
+            $order->set_status( 'pending' );
+            $order->save();
+            // Optionally schedule retry via Action Scheduler (not implemented here)
+        }
+
+        // Update subscription meta
         update_post_meta( $sub_id, '_wcss_last_order_id', $order->get_id() );
         $next = $this->calculate_next_renewal_timestamp( time(), $plan );
         update_post_meta( $sub_id, '_wcss_next_renewal', $next );
